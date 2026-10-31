@@ -38,6 +38,8 @@ class Loan:
     loan_date: date | None
     due_date: date | None
     renew_url: str | None
+    # Public; redirects to the cover image, or a generic placeholder when there is none
+    cover_url: str | None = None
 
     @property
     def renewable(self) -> bool:

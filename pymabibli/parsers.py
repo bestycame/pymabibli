@@ -70,6 +70,8 @@ def parse_loans(html: str) -> list[Loan]:
         notice_href = title_link.get("href") if title_link else None
         renew = pret.select_one("a.button__prolongation")
         renew_href = renew.get("href") if renew else None
+        cover = item.select_one(".field--name-field-couverture img[src]")
+        cover_src = cover.get("src") if cover else None
         library = pret.select_one(".mediatheque div")
         loans.append(
             Loan(
@@ -85,6 +87,7 @@ def parse_loans(html: str) -> list[Loan]:
                 loan_date=_parse_date(_text(pret.select_one(".field--name-field-date-emprunt"))),
                 due_date=_parse_date(_text(pret.select_one(".field--name-field-date-de-retour"))),
                 renew_url=urljoin(BASE_URL, renew_href) if isinstance(renew_href, str) else None,
+                cover_url=urljoin(BASE_URL, cover_src) if isinstance(cover_src, str) else None,
             )
         )
     return loans

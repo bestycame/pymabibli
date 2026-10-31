@@ -41,6 +41,7 @@ def test_parse_loans() -> None:
     assert first.loan_date == date(2026, 9, 20)
     assert first.due_date == date(2026, 11, 22)
     assert first.renew_url == "https://mabibli.be/bgm--prolongation--byId/1/He/2/L25vZGUvMQ=="
+    assert first.cover_url == "https://mabibli.be/bgm--couverture/1"
 
     assert second.title == "Le Grand voyage"
     assert second.document_type == "DVD"
@@ -48,6 +49,7 @@ def test_parse_loans() -> None:
     assert second.publisher is None
     assert second.due_date == date(2026, 11, 5)
     assert not second.renewable
+    assert second.cover_url is None
 
 
 def test_parse_loans_from_bigpipe() -> None:
