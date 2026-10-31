@@ -3,6 +3,9 @@
 from datetime import date
 from pathlib import Path
 
+import pytest
+
+from pymabibli import MabibliError
 from pymabibli.models import Message
 from pymabibli.parsers import (
     is_logged_in,
@@ -29,13 +32,18 @@ def test_parse_account() -> None:
     assert account.subscription_type == "03 - Adulte (03)"
 
 
+def test_parse_account_unexpected_page() -> None:
+    with pytest.raises(MabibliError, match="Account block not found"):
+        parse_account("<html><a href='/user/logout'>X</a></html>")
+
+
 def test_parse_loans() -> None:
     first, second = parse_loans(_fixture("loans.html"))
 
     assert first.title == "L'Atelier des petits artistes"
     assert first.notice_id == "111"
     assert first.document_type == "Livre"
-    assert first.authors == ["Wilkes, Angela (1952-....)", "Doe, John Illustrateur"]
+    assert first.authors == ("Wilkes, Angela (1952-....)", "Doe, John Illustrateur")
     assert first.publisher == "Larousse"
     assert first.library == "Geer"
     assert first.loan_date == date(2026, 9, 20)
@@ -45,11 +53,32 @@ def test_parse_loans() -> None:
 
     assert second.title == "Le Grand voyage"
     assert second.document_type == "DVD"
-    assert second.authors == []
+    assert second.authors == ()
     assert second.publisher is None
     assert second.due_date == date(2026, 11, 5)
     assert not second.renewable
     assert second.cover_url is None
+
+    assert len({first, second}) == 2
+
+
+def test_parse_loans_resolves_against_page_url() -> None:
+    html = (
+        "<div class='field__item'><div class='field--name-field-couverture'><img src='cover/1'></div>"
+        "<div class='pret'><div class='prolongation'>"
+        "<a class='button__prolongation' href='../renew/1'>Prolonger</a></div></div></div>"
+    )
+    (loan,) = parse_loans(html, "https://mabibli.be/page/user/prets-en-cours")
+    assert loan.renew_url == "https://mabibli.be/page/renew/1"
+    assert loan.cover_url == "https://mabibli.be/page/user/cover/1"
+
+
+def test_clean_title_with_typographic_apostrophe() -> None:
+    html = (
+        "<div class='field__item'><div class='field--name-node-title'><a>L’| Été</a></div>"
+        "<div class='pret'></div></div>"
+    )
+    assert parse_loans(html)[0].title == "L’Été"
 
 
 def test_parse_loans_from_bigpipe() -> None:
@@ -84,6 +113,15 @@ def test_parse_messages() -> None:
         Message("error", "Prolongation impossible : document réservé")
     ]
     assert parse_messages(_fixture("loans.html")) == []
+
+
+def test_parse_messages_ignores_alerts_outside_message_area() -> None:
+    html = (
+        "<div class='alert alert-danger'>Retard sur un document</div>"
+        "<div data-drupal-messages><div class='messages messages--error'>"
+        "<div class='alert alert-danger'>Prolongation impossible</div></div></div>"
+    )
+    assert parse_messages(html) == [Message("error", "Prolongation impossible")]
 
 
 def test_is_logged_in() -> None:

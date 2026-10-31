@@ -32,7 +32,7 @@ class Loan:
     title: str
     notice_id: str | None
     document_type: str | None
-    authors: list[str]
+    authors: tuple[str, ...]
     publisher: str | None
     library: str | None
     loan_date: date | None

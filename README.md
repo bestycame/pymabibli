@@ -50,8 +50,10 @@ async def main():
 asyncio.run(main())
 ```
 
-To reuse an existing `aiohttp.ClientSession` (as Home Assistant does), pass it with `session=`.
-The client then leaves it open when closing.
+You can pass your own `aiohttp.ClientSession` with `session=`; the client then leaves it open when closing.
+The login is kept in the session's cookie jar, so each client needs a session of its own:
+two cards sharing one session would see each other's account.
+In Home Assistant, use `async_create_clientsession(hass)` per config entry, not the shared `async_get_clientsession(hass)`.
 
 ## Error Handling
 
@@ -90,6 +92,8 @@ async def renew_everything():
 
 mabibli.be authenticates through a CAS server (`centralcas.gminvent.fr`).
 The client logs in on first use and logs in again when the site's session expires.
+Renewals are never retried automatically: if the session is lost during a renewal, `MabibliAuthError` is raised
+and you should check the loan before trying again.
 
 ### API Methods
 
